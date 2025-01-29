@@ -1,101 +1,238 @@
-import Image from "next/image";
+'use client'; 
+import { useState } from 'react';
+import { storeCustomer } from '@/services/api';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+//form data 
+interface FormData {
+  first_name: string;
+  last_name: string;
+  status_id: number;
+  email: string;
+  phone?: string;
+  address?: string;
+  skype?: string;
+  website?: string;
+  description?: string;
 }
+
+//validation errors 
+interface FormErrors {
+  first_name?: string;
+  last_name?: string;
+  status_id?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  skype?: string;
+  website?: string;
+  description?: string;
+}
+
+// Validate form data
+const validateForm = (data: FormData): FormErrors => {
+  const errors: FormErrors = {};
+
+  if (!data.first_name) {
+    errors.first_name = 'First name is required';
+  }
+  if (!data.status_id) {
+    errors.status_id = 'Status is required';
+  }
+  if (!data.email || !/\S+@\S+\.\S+/.test(data.email)) {
+    errors.email = 'Valid email is required';
+  }
+  if (data.phone && data.phone.length < 8) {
+    errors.phone = 'Phone number must be at least 8 digits';
+  }
+  return errors;
+};
+
+const CreateCustomer: React.FC = () => {
+  const [formData, setFormData] = useState<FormData>({
+    first_name: '',
+    last_name: '',
+    status_id: '',
+    email: '',
+    phone: '',
+    address: '',
+    skype: '',
+    website: '',
+    description: '',
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const crmStatuses = [
+    { id: 1, name: 'Lead' },
+    { id: 2, name: 'Customer' },
+    { id: 3, name: 'Partner' },
+  ];
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prevData => ({ ...prevData, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Reset errors and success message
+    setErrors({});
+    setSuccessMessage(null);
+
+    // Validate form data
+    const validationErrors = validateForm(formData);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+
+    try {
+      const response = await storeCustomer(formData);
+      setSuccessMessage(response.message);
+      setFormData({
+        first_name: '',
+        last_name: '',
+        status_id: 1, 
+        email: '',
+        phone: '',
+        address: '',
+        skype: '',
+        website: '',
+        description: '',
+
+      });
+      alert(response.message);
+    } catch (error: any) {
+      console.error('API Error:', error);
+      setErrors(error.data.errors || { message: error.data.message || 'An error occurred.' });
+    } 
+  };
+
+  return (
+  <div className='container'>
+    <div className="header">
+        <img src="/Danat.png" alt="Danat Institute Logo" className="logo" />
+    </div>
+    <div className='form'>
+      <h1>Create Customer</h1>
+      <form onSubmit={handleSubmit} className="danat-form">
+          <div className="form-group">
+            <label htmlFor="first_name">First Name </label>
+            <input
+              type="text"
+              id="first_name"
+              name="first_name"
+              value={formData.first_name}
+              onChange={handleChange}
+              required
+            />
+            {errors.first_name && <p className="error-message">{errors.first_name}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="last_name">Last Name</label>
+            <input
+              type="text"
+              id="last_name"
+              name="last_name"
+              value={formData.last_name}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="status_id">Status</label>
+            <select id="status_id" name="status_id" value={formData.status_id || ''} onChange={handleChange} required>
+              <option value="" disabled>
+                Select a status
+              </option>
+              {crmStatuses.map(status => (
+                <option key={status.id} value={status.id}>
+                  {status.name}
+                </option>
+              ))}
+            </select>
+            {errors?.status_id && <p className="error-message">{errors.status_id}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+            />
+            {errors.email && <p className="error-message">{errors.email}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="phone">Phone</label>
+            <input
+              type="text"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+            />
+            {errors.phone && <p className="error-message">{errors.phone}</p>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="address">Address</label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="skype">Skype</label>
+            <input
+              type="text"
+              id="skype"
+              name="skype"
+              value={formData.skype}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="website">Website</label>
+            <input
+              type="text"
+              id="website"
+              name="website"
+              value={formData.website}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+            />
+          </div>
+
+          <button type="submit" className="submit-button">
+            Create Customer
+          </button>
+        </form>
+      </div>
+  </div>
+  );
+};
+
+export default CreateCustomer;
