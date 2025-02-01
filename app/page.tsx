@@ -179,6 +179,7 @@ const CreateCustomer: React.FC = () => {
               name="phone"
               value={formData.phone}
               onChange={handleChange}
+              required
             />
             {errors.phone && <p className="error-message">{errors.phone}</p>}
           </div>
@@ -191,6 +192,7 @@ const CreateCustomer: React.FC = () => {
               name="address"
               value={formData.address}
               onChange={handleChange}
+              required
             />
           </div>
 
@@ -202,6 +204,7 @@ const CreateCustomer: React.FC = () => {
               name="skype"
               value={formData.skype}
               onChange={handleChange}
+              required
             />
           </div>
 
@@ -213,6 +216,7 @@ const CreateCustomer: React.FC = () => {
               name="website"
               value={formData.website}
               onChange={handleChange}
+              required
             />
           </div>
 
@@ -223,6 +227,7 @@ const CreateCustomer: React.FC = () => {
               name="description"
               value={formData.description}
               onChange={handleChange}
+              required
             />
           </div>
 
